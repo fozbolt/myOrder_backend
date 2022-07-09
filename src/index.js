@@ -6,6 +6,7 @@ import cors from 'cors';
 import connect from './db.js';
 import mongo from 'mongodb';
 import auth from './auth.js';
+import _ from 'lodash';
 
 
 const app = express(); // instanciranje aplikacije
@@ -52,6 +53,51 @@ app.post('/auth', async (req, res) => {
     }
 });
 
+app.get('/posts/:id', [auth.verify], async (req, res) => {
+    let id = req.params.id;
+    let db = await connect();
+    let document = await db.collection('posts').findOne({ _id: mongo.ObjectId(id) });
+
+    res.json(document);
+});
+
+
+
+app.get('/posts', [auth.verify], async (req, res) => {
+    let db = await connect();
+    let query = req.query;
+
+    let selekcija = {};
+
+    if (query._any) {
+        // za upit: /posts?_all=pojam1 pojam2
+        let pretraga = query._any;
+        let terms = pretraga.split(' ');
+
+        let atributi = ['name', 'price'];
+
+        selekcija = {
+            $and: [],
+        };
+
+        terms.forEach((term) => {
+            let or = {
+                $or: [],
+            };
+
+            atributi.forEach((atribut) => {
+                or.$or.push({ [atribut]: new RegExp(term, 'i')});
+            });
+
+            selekcija.$and.push(or);
+        });
+    }
+
+    let cursor = await db.collection('menu').find(selekcija);
+    let results = await cursor.toArray();
+
+    res.json(results);
+});
 
 
 app.listen(port, () => console.log(`Slušam na portu ${port}!`));
