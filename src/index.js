@@ -16,10 +16,17 @@ app.use(cors());
 app.use(express.json()); // automatski dekodiraj JSON poruke - bez toga ne možemo čitati npr body iz post requesta
 
 
-app.get('/test', (req, res) => {
-    //console.log('iz backenda');
-
-    res.send('OK iz backenda');
+app.get('/get_product_types', async (req, res) => {
+    let db = await connect();
+    let result= undefined
+    try{
+        result = await db.collection('product_types').findOne()
+        res.json(result);
+    } catch (err) {
+        //console.error(err)
+        res.send(err);
+    }
+    
 });
 
 app.post('/register', async (req, res) => {
@@ -54,61 +61,110 @@ app.post('/auth', async (req, res) => {
 });
 
 //javlja se kad zovem posts/:type pa trenutno komentiram (dolje promijenjeno u menu pa se sad moze koristiti)
-// app.get('/posts/:id', [auth.verify], async (req, res) => {
-//     let id = req.params.id;
-//     let db = await connect();
-//     let document = await db.collection('posts').findOne({ _id: mongo.ObjectId(id) });
+app.get('/food_list/:id', [auth.verify], async (req, res) => {
+ 
+    let id = req.params.id;
+    let db = await connect();
+    let document = await db.collection('menu').findOne({ _id: mongo.ObjectId(id) });
 
-//     res.json(document);
-// });
+    res.json(document);
+});
 
 
 
 app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) => {
 
-    let db = await connect();
     let query = req.query;
-    let type = req.params.type
+    let type = req.params.type.charAt(0) + req.params.type.substring(1).toLowerCase();
     let category = req.params.category
-    let subCategory = req.params.subCategory
-    let selekcija = {};
+    let subCategory = req.params.subcategory
+    let db = await connect();
+
+    let filter={
+        type: type,
+        category: category
+    };
+
+    if (subCategory != 'All') filter.subCategory = subCategory
 
 
-    //refactor? || type!==undefined || category!==undefined || subCategory!==undefined  staro
-    if (query._any ) {
-        // za upit: /posts?_all=pojam1 pojam2
+    //fetch only by category and filter result in backend
+    let cursor = await db.collection('menu').find(filter);
+    let results = await cursor.toArray();
+    //console.log(results)
+
+    let values = []
+    if (query._any ){
         let pretraga = query._any;
-        let terms = pretraga.split(' ');
+        values = pretraga.split(' ');
 
-        //dodati i type,category i subcategory u atribute? Da, na kraju
-        let atributi = ['name', 'price'];
+        let keys = ['name', 'price']; //add more later
 
-        selekcija = {
-            $and: [],
-        };
+        
+        //source: https://stackoverflow.com/questions/68005153/search-by-multiple-keys-and-values-javascript
+        let regex = new RegExp(values.join('|'), 'i')
+        let output =  results.filter(e =>  keys.some(k => regex.test(e[k])) )
+        
+        
+        res.json(output); 
+    }
 
-        terms.forEach((term) => {
-            let or = {
-                $or: [],
-                $and: []
-            };
+    else res.json(results);
+});
+
+
+
+// ovaj search nisam osposobio da radi s kategorijama - radi problem kada nema search terma jer ne moze and uvjet biti prazan i na subcategory='all' filtrira doslovno po "All" - drugi problem je sada rijesen
+// app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) => {
+
+//     let db = await connect();
+//     let query = req.query;
+//     let type = req.params.type.charAt(0) + req.params.type.substring(1).toLowerCase();
+//     let category = req.params.category
+//     let subCategory = req.params.subcategory
+//     let selekcija = {};
+
+//     console.log(type, category, subCategory)
+
+//     //refactor? || type!==undefined || category!==undefined || subCategory!==undefined  staro
+//     if  (type!==undefined && category!==undefined && subCategory!==undefined ) {
+//         let terms = []
+//         if (query._any ){
+//             let pretraga = query._any;
+//             terms = pretraga.split(' ');
+//         }
+//         // za upit: /posts?_all=pojam1 pojam2
+    
+
+//         //dodati i type,category i subcategory u atribute? Da, na kraju
+//         let atributi = ['name', 'price'];
+
+//         selekcija = {
+//             $and: [],
+//         };
+
+//         terms.forEach((term) => {
+//             let or = {
+//                 $or: [],
+//                 $and: []
+//             };
 
     
-            atributi.forEach((atribut) => {
-                or.$or.push({ [atribut]: new RegExp(term, 'i')});
-                or.$and.push({$and :[ { "type": type}, { "category": category}] })
-            });
+//             atributi.forEach((atribut) => {
+//                 or.$or.push({ [atribut]: new RegExp(term, 'i')});
+//                 or.$and.push({$and :[ { "type": type}, { "category": category}, { "subCategory": subCategory}] })
+//             });
 
-            selekcija.$and.push(or);
-        });
-    }
-    console.log(selekcija);
+//             selekcija.$and.push(or);
+//         });
+//     }
+//     console.log(selekcija);
 
-    let cursor = await db.collection('menu').find(selekcija);
-    let results = await cursor.toArray();
+//     let cursor = await db.collection('menu').find(selekcija);
+//     let results = await cursor.toArray();
 
-    res.json(results);
-});
+//     res.json(results);
+// });
 
 
 app.listen(port, () => console.log(`Slušam na portu ${port}!`));
