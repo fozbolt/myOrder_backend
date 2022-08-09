@@ -60,6 +60,34 @@ app.post('/auth', async (req, res) => {
     }
 });
 
+
+
+app.post('/new_order', async (req, res) => {
+    let db = await connect();
+    let data = req.body;
+    
+    if (!(data.items || data.orderInfo)){
+        res.json({
+            status: 'fail',
+            reason: 'incomplete_order'
+        })
+        return
+    }
+
+    let result = await db.collection('orders').insertOne(data);
+    if (result.insertedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.json({
+            status: 'fail',
+        });
+    }
+});
+
+
 //javlja se kad zovem posts/:type pa trenutno komentiram (dolje promijenjeno u menu pa se sad moze koristiti)
 app.get('/food_list/:id', [auth.verify], async (req, res) => {
  
