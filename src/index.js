@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json()); // automatski dekodiraj JSON poruke - bez toga ne možemo čitati npr body iz post requesta
 
 
-app.get('/get_product_types', async (req, res) => {
+app.get('/product_types', async (req, res) => {
     let db = await connect();
     let result= undefined
     try{
@@ -85,6 +85,44 @@ app.post('/new_order', async (req, res) => {
             status: 'fail',
         });
     }
+});
+
+
+
+app.post('/leave_feedback', async (req, res) => {
+    let db = await connect();
+    let data = req.body;
+
+    let result = await db.collection('feedbacks').insertOne(data);
+    if (result.insertedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.json({
+            status: 'fail',
+        });
+    }
+});
+
+
+
+
+app.get('/order_info/:id', async (req, res) => {
+    let id = req.params.id;
+
+    let db = await connect();
+    let result= undefined
+
+    try{
+        result = await db.collection('orders').findOne({ _id: mongo.ObjectId(id) });
+        res.json(result);
+    } catch (err) {
+        //console.error(err)
+        res.send(err);
+    }
+    
 });
 
 
