@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json()); // automatski dekodiraj JSON poruke - bez toga ne možemo čitati npr body iz post requesta
 
 
-app.get('/product_types', async (req, res) => {
+app.get('/product_types', async (_req, res) => {
     let db = await connect();
     let result= undefined
     try{
@@ -82,6 +82,31 @@ app.post('/new_order', async (req, res) => {
         });
     } else {
         res.json({
+            status: 'fail',
+        });
+    }
+});
+
+
+app.patch('/orders/:id', async (req, res) => {
+    let doc = req.body;
+    delete doc._id;
+    let id = req.params.id;
+    let db = await connect();
+
+    let result = await db.collection('orders').updateOne(
+        { _id: mongo.ObjectId(id) },
+        {
+            $set: doc,
+        }
+    );
+    if (result.modifiedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.status(500).json({
             status: 'fail',
         });
     }
