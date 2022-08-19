@@ -16,7 +16,8 @@ export default {
         try {
             let doc = {
                 username: userData.username,
-                profileType: userData.profileType,
+                name: userData.name,
+                surname: userData.surname,
                 // lozinku ćemo hashirati pomoću bcrypta
                 password: await bcrypt.hash(userData.password, 8),
             };
