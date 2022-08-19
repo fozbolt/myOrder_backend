@@ -10,7 +10,7 @@ import _ from 'lodash';
 
 
 const app = express(); // instanciranje aplikacije
-const port = 3000; // port na kojem će web server slušati
+const port = process.env.PORT || 5000 
 
 app.use(cors());
 app.use(express.json()); // automatski dekodiraj JSON poruke - bez toga ne možemo čitati npr body iz post requesta
