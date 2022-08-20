@@ -29,11 +29,6 @@ app.get('/product_types', async (_req, res) => {
     
 });
 
-app.get('/', async (_req, res) => {
-    
-    res.send('hello')
-    
-});
 
 app.post('/register', async (req, res) => {
     let user = req.body.new_user;
