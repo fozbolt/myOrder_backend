@@ -133,6 +133,25 @@ app.post('/leave_feedback', async (req, res) => {
 });
 
 
+app.post('/subscribe', async (req, res) => {
+    let db = await connect();
+    let data = req.body;
+    data.time = Date.now()
+
+    let result = await db.collection('subscribers').insertOne(data);
+    if (result.insertedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.json({
+            status: 'fail',
+        });
+    }
+});
+
+
 
 
 app.get('/order_info/:id', async (req, res) => {
