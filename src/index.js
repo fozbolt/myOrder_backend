@@ -29,11 +29,6 @@ app.get('/product_types', async (_req, res) => {
     
 });
 
-app.get('/', async (_req, res) => {
-    
-    res.send('hello')
-    
-});
 
 app.post('/register', async (req, res) => {
     let user = req.body.new_user;
@@ -125,6 +120,25 @@ app.post('/leave_feedback', async (req, res) => {
     let data = req.body;
 
     let result = await db.collection('feedbacks').insertOne(data);
+    if (result.insertedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.json({
+            status: 'fail',
+        });
+    }
+});
+
+
+app.post('/subscribe', async (req, res) => {
+    let db = await connect();
+    let data = req.body;
+    data.time = Date.now()
+
+    let result = await db.collection('subscribers').insertOne(data);
     if (result.insertedCount == 1) {
         res.json({
             status: 'success',
