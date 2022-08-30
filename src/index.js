@@ -14,6 +14,7 @@ const port = process.env.PORT || 5000
 
 app.use(cors());
 app.use(express.json()); // automatski dekodiraj JSON poruke - bez toga ne možemo čitati npr body iz post requesta
+app.use(express.urlencoded({ extended: true }));
 
 
 app.get('/product_types', async (_req, res) => {
@@ -183,12 +184,31 @@ app.get('/food_list/:id', [auth.verify], async (req, res) => {
 
 
 
+
+app.get('/about_info', [auth.verify], async (req, res) => {
+    let db = await connect();
+
+    try{
+        let cursor = await db.collection('about_us').find();
+        let results = await cursor.toArray();
+        
+        res.json(results);
+
+    } catch (err) {
+        res.send(err);
+    }
+});
+
+
+
+
 app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) => {
 
     let query = req.query;
     let type = req.params.type.charAt(0) + req.params.type.substring(1).toLowerCase();
     let category = req.params.category
     let subCategory = req.params.subcategory
+
     let db = await connect();
 
     let filter={
@@ -196,13 +216,13 @@ app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) =>
         category: category
     };
 
-    if (subCategory != 'All') filter.subCategory = subCategory
-
+    if (subCategory != 'All' && subCategory != 'undefined') filter.subCategory = subCategory
+   
 
     //fetch only by category and filter result in backend
     let cursor = await db.collection('menu').find(filter);
     let results = await cursor.toArray();
-    //console.log(results)
+    // console.log(results)
 
     let values = []
     if (query._any ){
