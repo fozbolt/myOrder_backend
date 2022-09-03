@@ -52,6 +52,7 @@ export default {
             return {
                 token,
                 username: user.username,
+                type: user.type
             };
         } else {
             throw new Error('Cannot authenticate');
