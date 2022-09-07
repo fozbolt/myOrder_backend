@@ -269,18 +269,38 @@ app.patch('/update_product', async (req, res) => {
     let db = await connect();
     let id = doc.id;
     delete doc.id;
-
+ 
     let result = await db.collection('menu').updateOne(
         { _id: mongo.ObjectId(id) },
         {
             $set: doc,
         }
     );
+
     if (result.modifiedCount == 1) {
         res.json({
             status: 'success',
             id: result.insertedId,
         });
+    } else {
+        res.status(500).json({
+            status: 'fail',
+        });
+    }
+});
+
+
+app.delete('/products/:id', async (req, res) => {
+    let db = await connect();
+    let id = req.params.id;
+
+    let result = await db.collection('menu').deleteOne(
+        { _id: mongo.ObjectId(id) }
+
+    );
+
+    if (result.deletedCount == 1) {
+        res.status(201).send();
     } else {
         res.status(500).json({
             status: 'fail',
