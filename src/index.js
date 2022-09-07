@@ -244,6 +244,52 @@ app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) =>
 });
 
 
+//manager
+app.post('/add_product', async (req, res) => {
+    let db = await connect();
+    let data = req.body;
+    delete data.id
+
+    let result = await db.collection('menu').insertOne(data);
+    if (result.insertedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.json({
+            status: 'fail',
+        });
+    }
+});
+
+
+app.patch('/update_product', async (req, res) => {
+    let doc = req.body;
+    let db = await connect();
+    let id = doc.id;
+    delete doc.id;
+
+    let result = await db.collection('menu').updateOne(
+        { _id: mongo.ObjectId(id) },
+        {
+            $set: doc,
+        }
+    );
+    if (result.modifiedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.status(500).json({
+            status: 'fail',
+        });
+    }
+});
+
+
+
 
 // ovaj search nisam osposobio da radi s kategorijama - radi problem kada nema search terma jer ne moze and uvjet biti prazan i na subcategory='all' filtrira doslovno po "All" - drugi problem je sada rijesen
 // app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) => {
