@@ -7,6 +7,7 @@ import connect from './db.js';
 import mongo from 'mongodb';
 import auth from './auth.js';
 import _ from 'lodash';
+import bcrypt from 'bcrypt';
 
 
 const app = express(); // instanciranje aplikacije
@@ -244,6 +245,8 @@ app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) =>
 });
 
 
+
+
 //manager
 app.post('/add_product', async (req, res) => {
     let db = await connect();
@@ -295,6 +298,125 @@ app.delete('/products/:id', async (req, res) => {
     let id = req.params.id;
 
     let result = await db.collection('menu').deleteOne(
+        { _id: mongo.ObjectId(id) }
+
+    );
+
+    if (result.deletedCount == 1) {
+        res.status(201).send();
+    } else {
+        res.status(500).json({
+            status: 'fail',
+        });
+    }
+});
+
+app.get('/employee_types', async (_req, res) => {
+    let db = await connect();
+    let result= undefined
+    try{
+        result = await db.collection('employee_types').findOne()
+        res.json(result.types);
+    } catch (err) {
+        //console.error(err)
+        res.send(err);
+    }
+    
+});
+
+
+app.get('/employees/:type', [auth.verify], async (req, res) => {
+
+    let query = req.query;
+    let type = req.params.type.charAt(0) + req.params.type.substring(1).toLowerCase();
+
+    let db = await connect();
+
+    let filter={
+        type: type,
+    };
+
+    //fetch only by category and filter result in backend
+    let cursor = await db.collection('users').find(filter);
+    let results = await cursor.toArray();
+
+    let values = []
+    if (query._any ){
+        let pretraga = query._any;
+        values = pretraga.split(' ');
+
+        let keys = ['fullName', 'address']; //add more later
+
+        
+        //source: https://stackoverflow.com/questions/68005153/search-by-multiple-keys-and-values-javascript
+        let regex = new RegExp(values.join('|'), 'i')
+        let output =  results.filter(e =>  keys.some(k => regex.test(e[k])) )
+
+        res.json(output); 
+    }
+
+    else res.json(results);
+});
+
+
+
+app.post('/add_employee', async (req, res) => {
+    let db = await connect();
+    let user = req.body;
+    delete user.id
+    
+    try {
+        let result = await auth.registerUser(user);
+
+        res.status(201).send(true);
+
+    } catch (e) {
+        res.status(500).json({
+            error: e.message,
+        });
+    }
+});
+
+
+app.patch('/update_employee', async (req, res) => {
+    let doc = req.body;
+    let db = await connect();
+    
+    let id = doc.id;
+    doc.username = doc.email
+    delete doc.id;
+    delete doc.email;
+
+
+    //simpler than calling whole auth.changeUserPassword method and two db calls
+    doc.password = await bcrypt.hash(doc.password, 8);
+ 
+    let result = await db.collection('users').updateOne(
+        { _id: mongo.ObjectId(id) },
+        {
+            $set: doc,
+        }
+    );
+
+    if (result.modifiedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.status(500).json({
+            status: 'fail',
+        });
+    }
+});
+
+
+
+app.delete('/employees/:id', async (req, res) => {
+    let db = await connect();
+    let id = req.params.id;
+
+    let result = await db.collection('users').deleteOne(
         { _id: mongo.ObjectId(id) }
 
     );

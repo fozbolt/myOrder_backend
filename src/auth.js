@@ -15,11 +15,20 @@ export default {
         let result;
         try {
             let doc = {
-                username: userData.username,
-                name: userData.name,
-                surname: userData.surname,
-                // lozinku ćemo hashirati pomoću bcrypta
-                password: await bcrypt.hash(userData.password, 8),
+                username: userData.email,
+                password: userData.password,
+                fullName: userData.fullName,
+                dateOfBirth: userData.dateOfBirth,
+                phone: userData.phone,
+                address: userData.address,
+                city: userData.city,
+                postalCode: userData.postalCode,
+                contract: userData.contract,
+                wage: userData.wage,
+                type: userData.employeeType,
+                password: userData.password,
+                url: userData.url,
+                password: await bcrypt.hash(userData.password, 8),  // lozinku ćemo hashirati pomoću bcrypta
             };
             
             result = await db.collection('users').insertOne(doc);
