@@ -433,6 +433,41 @@ app.delete('/employees/:id', async (req, res) => {
 
 
 
+app.get('/get_subscribers', [auth.verify], async (req, res) => {
+    let db = await connect();
+
+    try{
+        let cursor = await db.collection('subscribers').find();
+        let results = await cursor.toArray();
+        
+        res.json(results);
+
+    } catch (err) {
+        res.send(err);
+    }
+});
+
+
+
+app.get('/get_feedbacks', [auth.verify], async (req, res) => {
+    let db = await connect();
+
+    try{
+        let cursor = await db.collection('feedbacks').find();
+        let results = await cursor.toArray();
+        
+        res.json(results);
+
+    } catch (err) {
+        res.send(err);
+    }
+});
+
+
+
+
+
+
 // ovaj search nisam osposobio da radi s kategorijama - radi problem kada nema search terma jer ne moze and uvjet biti prazan i na subcategory='all' filtrira doslovno po "All" - drugi problem je sada rijesen
 // app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) => {
 
