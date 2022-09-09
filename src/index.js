@@ -381,15 +381,15 @@ app.post('/add_employee', async (req, res) => {
 app.patch('/update_employee', async (req, res) => {
     let doc = req.body;
     let db = await connect();
-    
+
     let id = doc.id;
     doc.username = doc.email
     delete doc.id;
     delete doc.email;
 
 
-    //simpler than calling whole auth.changeUserPassword method and two db calls
-    doc.password = await bcrypt.hash(doc.password, 8);
+    //simpler than calling whole auth.changeUserPassword method and two db calls - but first dummy check if already hashed (means that password isnt changed during current update)
+    if (!doc.password.includes('$2b$')) doc.password = await bcrypt.hash(doc.password, 8);
  
     let result = await db.collection('users').updateOne(
         { _id: mongo.ObjectId(id) },
