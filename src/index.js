@@ -201,6 +201,23 @@ app.get('/about_info', [auth.verify], async (req, res) => {
 });
 
 
+app.delete('/orders/:id', async (req, res) => {
+    let db = await connect();
+    let id = req.params.id;
+
+    let result = await db.collection('orders').deleteOne(
+        { _id: mongo.ObjectId(id) }
+
+    );
+
+    if (result.deletedCount == 1) {
+        res.status(201).send();
+    } else {
+        res.status(500).json({
+            status: 'fail',
+        });
+    }
+});
 
 
 app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) => {
@@ -466,9 +483,56 @@ app.get('/get_feedbacks', [auth.verify], async (req, res) => {
 
 
 
+app.get('/Order_types', async (_req, res) => {
+    let db = await connect();
+    let result= undefined
+    try{
+        result = await db.collection('order_status').findOne()
+        res.json(result.types);
+    } catch (err) {
+        //console.error(err)
+        res.send(err);
+    }
+    
+});
 
 
-// ovaj search nisam osposobio da radi s kategorijama - radi problem kada nema search terma jer ne moze and uvjet biti prazan i na subcategory='all' filtrira doslovno po "All" - drugi problem je sada rijesen
+
+app.get('/orders/:status', [auth.verify], async (req, res) => {
+    let query = req.query;
+    let status = req.params.status
+
+    let db = await connect();
+
+    //fetch only by category and filter result in backend
+    let cursor = await db.collection('orders').find({
+        'orderInfo.orderStatus': status
+    });
+    let results = await cursor.toArray();
+
+    let values = []
+
+    if (query._any ){
+        let pretraga = query._any;
+        values = pretraga.split(' ');
+
+        let keys = ['table', 'totalAmount', 'orderId']; //add more later
+
+        
+        //source: https://stackoverflow.com/questions/68005153/search-by-multiple-keys-and-values-javascript
+        let regex = new RegExp(values.join('|'), 'i')
+        let output =  results.filter(e =>  keys.some(k => regex.test(e.orderInfo[k])) )
+
+        res.json(output); 
+    }
+
+    else res.json(results);
+});
+
+
+
+
+// ovaj search nisam osposobio da radi s kategorijama - radi problem kada nema search terma jer ne moze 'and' uvjet biti prazan i na subcategory='all' filtrira doslovno po "All" - drugi problem je sada rijesen
 // app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) => {
 
 //     let db = await connect();
