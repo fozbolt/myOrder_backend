@@ -263,20 +263,29 @@ app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) =>
 
 
 
-app.get('/orders/:status', [auth.verify], async (req, res) => {
+app.get('/orders/:type/:status', [auth.verify], async (req, res) => {
     let query = req.query;
     let status = req.params.status
+    let type = req.params.type
 
     let db = await connect();
 
-    //fetch only by category and filter result in backend
-    let cursor = await db.collection('orders').find({
-        'orderInfo.orderStatus': status
-    });
+    //fetch only by status and filter result in backend
+    let cursor = undefined
+
+    if(type === 'Food'){
+        cursor = await db.collection('orders').find({
+            'orderInfo.foodStatus': status
+        });
+    }else{
+        cursor = await db.collection('orders').find({
+            'orderInfo.drinkStatus': status
+        });
+    }
+    
     let results = await cursor.toArray();
 
     let values = []
-
     if (query._any ){
         let pretraga = query._any;
         values = pretraga.split(' ');
