@@ -10,11 +10,11 @@ import _ from 'lodash';
 import bcrypt from 'bcrypt';
 
 
-const app = express(); // instanciranje aplikacije
+const app = express(); // creating instance of backend application
 const port = process.env.PORT || 5000 
 
 app.use(cors());
-app.use(express.json()); // automatski dekodiraj JSON poruke - bez toga ne možemo čitati npr body iz post requesta
+app.use(express.json()); // decode json messages  - w/o this we can't read for example, body from post request
 app.use(express.urlencoded({ extended: true }));
 
 
@@ -172,7 +172,6 @@ app.get('/order_info/:id', async (req, res) => {
 });
 
 
-//javlja se kad zovem posts/:type pa trenutno komentiram (dolje promijenjeno u menu pa se sad moze koristiti)
 app.get('/food_list/:id', [auth.verify], async (req, res) => {
  
     let id = req.params.id;
