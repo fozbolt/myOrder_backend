@@ -3,7 +3,7 @@ import connect from './db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-// Kreiranje indeksa pri pokretanju aplikacije (ukoliko već ne postoji)
+// Creation of index on app run (if it doesnt exist yet)
 (async () => {
     let db = await connect();
     db.collection('users').createIndex({ username: 1 }, { unique: true });
@@ -28,7 +28,7 @@ export default {
                 type: userData.employeeType,
                 password: userData.password,
                 url: userData.url,
-                password: await bcrypt.hash(userData.password, 8),  // lozinku ćemo hashirati pomoću bcrypta
+                password: await bcrypt.hash(userData.password, 8),  // password hashing through bcrypt
             };
             
             result = await db.collection('users').insertOne(doc);
@@ -57,11 +57,12 @@ export default {
                 algorithm: 'HS512',
                 expiresIn: '1 week',
             });
-           
+     
             return {
                 token,
                 username: user.username,
-                type: user.type
+                type: user.type,
+                id: user._id
             };
         } else {
             throw new Error('Cannot authenticate');
@@ -94,7 +95,7 @@ export default {
                     return res.status(401).send(); // HTTP invalid requets
                 } else {
                     let token = authorization[1];
-                    // spremi uz upit, verify baca grešku(exception) ako ne uspije
+                    // save jwt in request, verify throws error(exception) if it doesn't succeed
                     req.jwt = jwt.verify(authorization[1], process.env.JWT_SECRET);
                     return next();
                 }

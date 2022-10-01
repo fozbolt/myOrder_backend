@@ -9,10 +9,10 @@ let client = new mongo.MongoClient(connection_string, {
 
 let db = null;
 
-// eksportamo Promise koji resolva na konekciju
+// We esport Promise which resolves on connection
 export default () => {
     return new Promise((resolve, reject) => {
-        // ako smo inicijalizirali bazu i klijent je još uvijek spojen
+        // if we initialized database and client is still connected
         if (db && client.isConnected()) {
             resolve(db);
         } else {

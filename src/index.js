@@ -10,11 +10,11 @@ import _ from 'lodash';
 import bcrypt from 'bcrypt';
 
 
-const app = express(); // instanciranje aplikacije
+const app = express(); // creating instance of backend application
 const port = process.env.PORT || 5000 
 
 app.use(cors());
-app.use(express.json()); // automatski dekodiraj JSON poruke - bez toga ne možemo čitati npr body iz post requesta
+app.use(express.json()); // decode json messages  - w/o this we can't read for example, body from post request
 app.use(express.urlencoded({ extended: true }));
 
 
@@ -93,7 +93,7 @@ app.post('/new_order', async (req, res) => {
 
 app.patch('/orders/:id', async (req, res) => {
     let doc = req.body;
-    delete doc._id;
+    delete doc._id; delete doc.id;
     let id = req.params.id;
     let db = await connect();
 
@@ -158,7 +158,6 @@ app.post('/subscribe', async (req, res) => {
 
 app.get('/order_info/:id', async (req, res) => {
     let id = req.params.id;
-
     let db = await connect();
     let result= undefined
 
@@ -173,7 +172,6 @@ app.get('/order_info/:id', async (req, res) => {
 });
 
 
-//javlja se kad zovem posts/:type pa trenutno komentiram (dolje promijenjeno u menu pa se sad moze koristiti)
 app.get('/food_list/:id', [auth.verify], async (req, res) => {
  
     let id = req.params.id;
@@ -201,6 +199,23 @@ app.get('/about_info', [auth.verify], async (req, res) => {
 });
 
 
+app.delete('/orders/:id', async (req, res) => {
+    let db = await connect();
+    let id = req.params.id;
+
+    let result = await db.collection('orders').deleteOne(
+        { _id: mongo.ObjectId(id) }
+
+    );
+
+    if (result.deletedCount == 1) {
+        res.status(201).send();
+    } else {
+        res.status(500).json({
+            status: 'fail',
+        });
+    }
+});
 
 
 app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) => {
@@ -243,6 +258,131 @@ app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) =>
 
     else res.json(results);
 });
+
+
+
+
+app.get('/orders/:type/:status', [auth.verify], async (req, res) => {
+    let query = req.query;
+    let status = req.params.status
+    let type = req.params.type
+
+    let db = await connect();
+
+    //fetch only by status and filter result in backend
+    let cursor = undefined
+
+    if(type === 'Food'){
+        cursor = await db.collection('orders').find({
+            'orderInfo.foodStatus': status
+        });
+    }else{
+        cursor = await db.collection('orders').find({
+            'orderInfo.drinkStatus': status
+        });
+    }
+    
+    let results = await cursor.toArray();
+
+    let values = []
+    if (query._any ){
+        let pretraga = query._any;
+        values = pretraga.split(' ');
+
+        let keys = ['table', 'totalAmount', 'orderId']; //add more later
+
+        
+        //source: https://stackoverflow.com/questions/68005153/search-by-multiple-keys-and-values-javascript
+        let regex = new RegExp(values.join('|'), 'i')
+        let output =  results.filter(e =>  keys.some(k => regex.test(e.orderInfo[k])) )
+
+        res.json(output); 
+    }
+
+    else res.json(results);
+});
+
+
+
+
+app.post('/calls', async (req, res) => {
+    let db = await connect();
+    let data = req.body;
+
+    let result = await db.collection('calls').insertOne(data);
+    if (result.insertedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.json({
+            status: 'fail',
+        });
+    }
+});
+
+
+
+app.get('/calls/:status', [auth.verify], async (req, res) => {
+
+    let query = req.query;
+    let status = req.params.status
+
+    let db = await connect();
+   
+    //fetch only by category and filter result in backend
+    let cursor = await db.collection('calls').find({
+        'status': status
+    });
+    let results = await cursor.toArray();
+
+    let values = []
+    
+    if (query._any ){
+        let pretraga = query._any;
+        values = pretraga.split(' ');
+
+        let keys = ['reason', 'table']; 
+
+        
+        //source: https://stackoverflow.com/questions/68005153/search-by-multiple-keys-and-values-javascript
+        let regex = new RegExp(values.join('|'), 'i')
+        let output =  results.filter(e =>  keys.some(k => regex.test(e[k])) )
+        
+        res.json(output); 
+    }
+
+    else res.json(results);
+});
+
+
+
+app.patch('/calls/:id', async (req, res) => {
+    let doc = req.body;
+    delete doc._id; delete doc.id;
+    let id = req.params.id;
+    let db = await connect();
+
+    let result = await db.collection('calls').updateOne(
+        { _id: mongo.ObjectId(id) },
+        {
+            $set: doc,
+        }
+    );
+    if (result.modifiedCount == 1) {
+        res.json({
+            status: 'success',
+            id: result.insertedId,
+        });
+    } else {
+        res.status(500).json({
+            status: 'fail',
+        });
+    }
+});
+
+
 
 
 
@@ -466,9 +606,23 @@ app.get('/get_feedbacks', [auth.verify], async (req, res) => {
 
 
 
+app.get('/order_types', async (_req, res) => {
+    let db = await connect();
+    let result= undefined
+    try{
+        result = await db.collection('order_status').findOne()
+        res.json(result.types);
+    } catch (err) {
+        //console.error(err)
+        res.send(err);
+    }
+    
+});
 
 
-// ovaj search nisam osposobio da radi s kategorijama - radi problem kada nema search terma jer ne moze and uvjet biti prazan i na subcategory='all' filtrira doslovno po "All" - drugi problem je sada rijesen
+
+
+// ovaj search nisam osposobio da radi s kategorijama - radi problem kada nema search terma jer ne moze 'and' uvjet biti prazan i na subcategory='all' filtrira doslovno po "All" - drugi problem je sada rijesen
 // app.get('/menu/:type/:category/:subcategory', [auth.verify], async (req, res) => {
 
 //     let db = await connect();
